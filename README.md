@@ -1,13 +1,16 @@
 # Tower TD playable build
 
-Godot 4.7.2 comparison slice using a shared C++ gameplay runtime.
+Godot 4.7.2 cylinder-wall presentation connected to the existing C++ gameplay runtime.
 
 Play after the deployment workflow succeeds: https://kkamibbotto.github.io/tower-td-play/
 
-- Move/aim: A/D, arrow keys, or drag the arena.
-- Stone: Space / STONE. Shockwave: E / SHOCK.
-- Pause: P / top bar. Restart: R / top-right.
-- Touch supports aiming and attacks simultaneously.
+- Start/retry: Enter or tap the start/result overlay.
+- Move around the summit: A/D, arrow keys, or hold LEFT/RIGHT.
+- Stone: hold Space / STONE. Shockwave: press E / SHOCK (release before the next cast).
+- Pause: P / top bar. Save verified replay: V / top-right.
+- Touch supports movement and attacks simultaneously.
+- Enemies climb the cylinder wall; stones and shockwaves descend. The radar shows enemies behind the tower.
+- Uses the existing directional rules/content, seed 1 and 20 simulation ticks/second.
 
 This public repository contains the reviewed Web runtime archive and deployment tools.
 The original development repository, C++ source, Unreal projects and history are not copied.
@@ -30,3 +33,4 @@ Screenshots/logs are uploaded as workflow evidence. Physical-phone feel is a sep
 This repository does not have a token that reads the private development repository.
 Transferring a newer approved build is currently an explicit checkpoint, not an automatic
 cross-repository sync. No source repository visibility change is required.
+

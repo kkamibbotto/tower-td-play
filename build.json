@@ -1,7 +1,30 @@
 {
   "archive": "build/web.zip",
-  "sha256": "da869b140d4b1e5d81fb475425647d37d27da2e0183848424e5c9bf2098d5123",
-  "source_commit": "29982d41179f827289fdac02d7b49db43769d08b",
+  "sha256": "90e8546ee6a01d6faee900072f81e725d0e3498f9e6c5dfebdb82794c39b89e7",
+  "source_commit": "8960fb7033ad575f7c471561f4754c215ddcb37c",
   "godot": "4.7.2",
-  "files": ["THIRD_PARTY_NOTICES.txt", "index.144x144.png", "index.180x180.png", "index.512x512.png", "index.apple-touch-icon.png", "index.audio.position.worklet.js", "index.audio.worklet.js", "index.html", "index.icon.png", "index.manifest.json", "index.js", "index.offline.html", "index.pck", "index.png", "index.service.worker.js", "index.wasm", "tower_bootstrap.js", "tower_core.js", "tower_core.wasm"]
+  "files": [
+    "THIRD_PARTY_NOTICES.txt",
+    "index.144x144.png",
+    "index.180x180.png",
+    "index.512x512.png",
+    "index.apple-touch-icon.png",
+    "index.audio.position.worklet.js",
+    "index.audio.worklet.js",
+    "index.html",
+    "index.icon.png",
+    "index.manifest.json",
+    "index.js",
+    "index.offline.html",
+    "index.pck",
+    "index.png",
+    "index.service.worker.js",
+    "index.wasm",
+    "tower_bootstrap.js",
+    "tower_core.js",
+    "tower_core.wasm"
+  ],
+  "ci_commit": "95bc8cd6bf5be0075386f670a987648d3c98eab1",
+  "replay_ticks": 5878,
+  "content_fingerprint": "3EF3125C7F70E3B491EC5C87024E3EC7DCDD56C17D3C138D0C2863CD89257338"
 }

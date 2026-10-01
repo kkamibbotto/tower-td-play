@@ -29,30 +29,57 @@ fs.mkdirSync('evidence', {recursive:true});
       if (!mobile) {
         await wait(()=>window.walletReplayResult,240000);
         const replay=await page.evaluate(()=>window.walletReplayResult);
-        assert.deepEqual(replay,{cases:4,ok:true,ticks:5856});
+        assert.deepEqual(replay,{cases:4,ok:true,ticks:expected.replay_ticks});
         fs.writeFileSync('evidence/replay.json',JSON.stringify(replay,null,2));
       }
       await wait(()=>window.walletProbe?.ready,120000);
+      const initial=await page.evaluate(()=>window.walletProbe);
+      assert.equal(initial.config.seed,1);
+      assert.equal(initial.config.step_seconds,.05);
+      assert.equal(initial.config.rotation_step,60);
+      assert.equal(initial.config.fingerprint,expected.content_fingerprint);
+      assert.equal(initial.config.content,'directional-playtest-1');
+      assert.equal(initial.config.rules,'tower-rules-11');
+      assert.equal(initial.projection,'cylinder-elevation');
+      assert.equal(initial.started,false);
+      assert.equal(initial.tick,0);
+      if(mobile) await page.touchscreen.tap(195,420);
+      else await page.keyboard.press('Enter');
+      await wait(()=>window.walletProbe.started && window.walletProbe.tick>=1);
       if (mobile) {
         const cdp=await context.newCDPSession(page);
         const c=await page.locator('canvas').boundingBox(); assert.ok(c);
         const point=(x,y,id)=>({x:c.x+c.width*x,y:c.y+c.height*y,id});
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(.85,.45,1),point(.62,.895,2),point(.87,.895,3)]});
-        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.inputs.stone>0 && window.walletProbe.inputs.shock>0);
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(.37,.895,1),point(.62,.895,2),point(.87,.895,3)]});
+        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.events["wall-shot"]>0 && window.walletProbe.events["wall-wave"]===1);
+        await wait(()=>window.walletProbe.tick>=95);
+        assert.equal(await page.evaluate(()=>window.walletProbe.events['wall-wave']),1);
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(.87,.895,3)]});
+        await wait(()=>window.walletProbe.events['wall-wave']===2);
         await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
       } else {
         await page.keyboard.down('d');await page.keyboard.down('Space');await page.keyboard.down('e');
-        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.inputs.stone>0 && window.walletProbe.inputs.shock>0);
+        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.events["wall-shot"]>0 && window.walletProbe.events["wall-wave"]===1);
+        await wait(()=>window.walletProbe.tick>=95);
+        assert.equal(await page.evaluate(()=>window.walletProbe.events['wall-wave']),1);
         await page.keyboard.up('d');await page.keyboard.up('Space');await page.keyboard.up('e');
+        await page.keyboard.press('e');
+        await wait(()=>window.walletProbe.events['wall-wave']===2);
       }
+      const tickBefore=await page.evaluate(()=>window.walletProbe.tick);
+      const timeBefore=Date.now();
+      await wait(()=>window.walletProbe.tick>=150);
       const probe=await page.evaluate(()=>window.walletProbe);assert.ok(probe.wave>=1);
+      const rate=(probe.tick-tickBefore)/((Date.now()-timeBefore)/1000);
+      assert.ok(rate>12 && rate<26,'live clock: '+rate);
       const name=mobile?'mobile':'desktop';
       await page.screenshot({path:`evidence/${name}.png`});
       fs.writeFileSync(`evidence/${name}.json`,JSON.stringify(probe,null,2));
       await context.close();
     }
     assert.ok(!logs.some(x=>x.includes('PAGE_ERROR') || x.includes('SCRIPT ERROR:')));
-    console.log('LIVE_GAME_PASS: public HTTPS, exact build, 5856 replay ticks, keyboard and simultaneous touch');
+    console.log('LIVE_GAME_PASS: public HTTPS, exact build, 5878 replay ticks, keyboard and simultaneous touch');
   } catch(error) {
     if(current && !current.isClosed()) await current.screenshot({path:'evidence/failure.png'}).catch(()=>{});
     throw error;
@@ -61,3 +88,4 @@ fs.mkdirSync('evidence', {recursive:true});
     await browser.close();
   }
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
