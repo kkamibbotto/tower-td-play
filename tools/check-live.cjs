@@ -27,6 +27,12 @@ fs.mkdirSync('evidence', {recursive:true});
       assert.equal(actual.source_commit,expected.source_commit);
       await page.goto(url.href+(mobile?'':'?test=1'), {waitUntil:'domcontentloaded',timeout:60000});
       if (!mobile) {
+        await wait(()=>window.walletChainProof,240000);
+        const proof=await page.evaluate(()=>window.walletChainProof);
+        assert.ok(proof.max_chain>=2 && proof.bodies.length>=2);
+        assert.ok(proof.events.some(e=>e.kind==='fall-hit'));
+        fs.writeFileSync('evidence/chain-proof.json',JSON.stringify(proof,null,2));
+        await page.screenshot({path:'evidence/chain.png'});
         await wait(()=>window.walletReplayResult,240000);
         const replay=await page.evaluate(()=>window.walletReplayResult);
         assert.deepEqual(replay,{cases:4,ok:true,ticks:expected.replay_ticks});
@@ -38,8 +44,8 @@ fs.mkdirSync('evidence', {recursive:true});
       assert.equal(initial.config.step_seconds,.05);
       assert.equal(initial.config.rotation_step,60);
       assert.equal(initial.config.fingerprint,expected.content_fingerprint);
-      assert.equal(initial.config.content,'directional-playtest-1');
-      assert.equal(initial.config.rules,'tower-rules-11');
+      assert.equal(initial.config.content,expected.content);
+      assert.equal(initial.config.rules,expected.rules);
       assert.equal(initial.projection,'cylinder-elevation');
       assert.equal(initial.started,false);
       assert.equal(initial.tick,0);
@@ -79,7 +85,7 @@ fs.mkdirSync('evidence', {recursive:true});
       await context.close();
     }
     assert.ok(!logs.some(x=>x.includes('PAGE_ERROR') || x.includes('SCRIPT ERROR:')));
-    console.log('LIVE_GAME_PASS: public HTTPS, exact build, 5878 replay ticks, keyboard and simultaneous touch');
+    console.log('LIVE_GAME_PASS: public HTTPS, exact build, 6353 replay ticks and real falling-chain proof, keyboard and simultaneous touch');
   } catch(error) {
     if(current && !current.isClosed()) await current.screenshot({path:'evidence/failure.png'}).catch(()=>{});
     throw error;

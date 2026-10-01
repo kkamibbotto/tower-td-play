@@ -10,7 +10,9 @@ Play after the deployment workflow succeeds: https://kkamibbotto.github.io/tower
 - Pause: P / top bar. Save verified replay: V / top-right.
 - Touch supports movement and attacks simultaneously.
 - Enemies climb the cylinder wall; stones and shockwaves descend. The radar shows enemies behind the tower.
-- Uses the existing directional rules/content, seed 1 and 20 simulation ticks/second.
+- Rules12 adds falling-body collisions: a defeated enemy can damage enemies below and trigger a chain. The header shows the best chain.
+- Uses falling-playtest-1, seed 1 and 20 simulation ticks/second.
+- This checkpoint adds falling chains; XP/cards, special enemies, boss/finale and risk nest are not included yet.
 
 This public repository contains the reviewed Web runtime archive and deployment tools.
 The original development repository, C++ source, Unreal projects and history are not copied.
