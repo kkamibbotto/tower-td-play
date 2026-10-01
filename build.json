@@ -1,0 +1,7 @@
+{
+  "archive": "build/web.zip",
+  "sha256": "da869b140d4b1e5d81fb475425647d37d27da2e0183848424e5c9bf2098d5123",
+  "source_commit": "29982d41179f827289fdac02d7b49db43769d08b",
+  "godot": "4.7.2",
+  "files": ["THIRD_PARTY_NOTICES.txt", "index.144x144.png", "index.180x180.png", "index.512x512.png", "index.apple-touch-icon.png", "index.audio.position.worklet.js", "index.audio.worklet.js", "index.html", "index.icon.png", "index.manifest.json", "index.js", "index.offline.html", "index.pck", "index.png", "index.service.worker.js", "index.wasm", "tower_bootstrap.js", "tower_core.js", "tower_core.wasm"]
+}

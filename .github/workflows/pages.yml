@@ -1,0 +1,62 @@
+name: Deploy and verify Tower TD
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tower-pages
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and unpack the approved Web build
+        run: python tools/unpack.py
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+  deploy:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test tools
+        run: |
+          npm install --prefix .browser playwright@1.58.2
+          .browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Verify actual public game, replay and inputs
+        env:
+          PLAY_URL: ${{ needs.deploy.outputs.page_url }}
+        run: NODE_PATH="$GITHUB_WORKSPACE/.browser/node_modules" timeout 480 node tools/check-live.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-browser-evidence-${{ github.sha }}
+          path: evidence
