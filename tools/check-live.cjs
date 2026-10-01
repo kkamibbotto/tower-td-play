@@ -27,6 +27,11 @@ fs.mkdirSync('evidence', {recursive:true});
       assert.equal(actual.source_commit,expected.source_commit);
       await page.goto(url.href+(mobile?'':'?test=1'), {waitUntil:'domcontentloaded',timeout:60000});
       if (!mobile) {
+        await wait(()=>window.walletRosterProof,240000);
+        const rosterProof=await page.evaluate(()=>window.walletRosterProof);
+        assert.ok(rosterProof.enemies.some(e=>e.kind!=='grunt'));
+        fs.writeFileSync('evidence/roster-proof.json',JSON.stringify(rosterProof,null,2));
+        await page.screenshot({path:'evidence/roster.png'});
         await wait(()=>window.walletChainProof,240000);
         const proof=await page.evaluate(()=>window.walletChainProof);
         assert.ok(proof.max_chain>=2 && proof.bodies.length>=2);
@@ -37,6 +42,10 @@ fs.mkdirSync('evidence', {recursive:true});
         const replay=await page.evaluate(()=>window.walletReplayResult);
         assert.deepEqual(replay,{cases:4,ok:true,ticks:expected.replay_ticks});
         fs.writeFileSync('evidence/replay.json',JSON.stringify(replay,null,2));
+        const roster=await page.evaluate(()=>window.walletRosterResult);
+        assert.equal(roster.kinds.length,8);
+        for(const kind of ['armor-break','explosion','enemy-jump','enemy-crouch','enemy-turn','fall-hit']) assert.ok(roster.events[kind]>0,kind);
+        fs.writeFileSync('evidence/roster-result.json',JSON.stringify(roster,null,2));
       }
       await wait(()=>window.walletProbe?.ready,120000);
       const initial=await page.evaluate(()=>window.walletProbe);
@@ -85,7 +94,7 @@ fs.mkdirSync('evidence', {recursive:true});
       await context.close();
     }
     assert.ok(!logs.some(x=>x.includes('PAGE_ERROR') || x.includes('SCRIPT ERROR:')));
-    console.log('LIVE_GAME_PASS: public HTTPS, exact build, 6353 replay ticks and real falling-chain proof, keyboard and simultaneous touch');
+    console.log('LIVE_GAME_PASS: public HTTPS, exact build, verified roster replay and real falling-chain proof, keyboard and simultaneous touch');
   } catch(error) {
     if(current && !current.isClosed()) await current.screenshot({path:'evidence/failure.png'}).catch(()=>{});
     throw error;
