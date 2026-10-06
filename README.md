@@ -36,3 +36,9 @@ Screenshots/logs are uploaded as workflow evidence. Physical-phone feel is a sep
 This repository does not have a token that reads the private development repository.
 Transferring a newer approved build is currently an explicit checkpoint, not an automatic
 cross-repository sync. No source repository visibility change is required.
+
+## Language / 언어
+
+기본 언어는 한국어입니다. 화면의 언어 버튼 또는 `L` 키로 한국어/영어를 전환합니다.
+The default language is Korean. Use the language button or `L` to switch Korean/English.
+The verified build includes annotated localization data and the Noto Sans KR font with its SIL OFL license and provenance.

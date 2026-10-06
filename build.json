@@ -1,7 +1,7 @@
 {
   "archive": "build/web.zip",
-  "sha256": "2d6213d0fb1708410c1a2b2339d3d199e17dc34038f99cd9cefa43ec3fa56725",
-  "source_commit": "1c11ecd6dd01dd8ce3b0e96c6b4d7347f009dfa8",
+  "sha256": "38a695f9dfcbeaf584a3d4432f7d3ef227af9279008cd555e7c8b210bb2800eb",
+  "source_commit": "d5a2d6b39633c39b5d4effc5beb994c2661942db",
   "godot": "4.7.2",
   "files": [
     "THIRD_PARTY_NOTICES.txt",
@@ -24,9 +24,14 @@
     "tower_core.js",
     "tower_core.wasm"
   ],
-  "ci_commit": "38706b0f7a68d40761ce365e6beeea74c65ed01f",
+  "ci_commit": "3ba96669a2b7387530b4332fea84b3c5921c9a42",
   "replay_ticks": 6104,
   "content_fingerprint": "DE63A7EF1346107E0251FAFAF42C335F11B0BFBC942617C60991400A5D6FF7B7",
   "content": "risk-playtest-1",
-  "rules": "tower-rules-16"
+  "rules": "tower-rules-16",
+  "default_locale": "ko",
+  "locales": [
+    "ko",
+    "en"
+  ]
 }
