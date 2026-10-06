@@ -113,12 +113,37 @@ fs.mkdirSync('evidence', {recursive:true});
         await page.keyboard.press('e');
         await wait(()=>window.walletProbe.events['wall-wave']===2);
       }
-      const tickBefore=await page.evaluate(()=>window.walletProbe.tick);
-      const timeBefore=Date.now();
-      await wait(()=>window.walletProbe.tick>=150);
-      const probe=await page.evaluate(()=>window.walletProbe);assert.ok(probe.wave>=1);
-      const rate=(probe.tick-tickBefore)/((Date.now()-timeBefore)/1000);
+      // A genuine card choice pauses simulation. Handle it with real input and
+      // restart the clock sample; never count choice/wall time as game time.
+      let probe, rate;
+      const clockChoices=[];
+      for(let attempt=0;attempt<4;attempt++) {
+        let before=await page.evaluate(()=>window.walletProbe);
+        if(before.choosing) {
+          assert.equal(before.decision,'card','unexpected live-clock decision');
+          assert.ok(before.options.length>0);
+          const id=before.options[0].id;
+          if(mobile) {
+            const canvas=await page.locator('canvas').boundingBox();assert.ok(canvas);
+            await page.touchscreen.tap(canvas.x+canvas.width*.5,canvas.y+canvas.height*.35);
+          } else await page.keyboard.press('1');
+          await wait(()=>!window.walletProbe.choosing);
+          const after=await page.evaluate(()=>window.walletProbe);
+          assert.equal(after.cards[id],(before.cards[id]||0)+1);
+          clockChoices.push({id,before:before.simulation_tick,after:after.simulation_tick});
+          before=after;
+        }
+        const timeBefore=Date.now();
+        const target=Math.max(150,before.simulation_tick+40);
+        await Promise.race([page.waitForFunction(t=>window.walletProbe.choosing || window.walletProbe.simulation_tick>=t,target,{timeout:30000}),failure]);
+        probe=await page.evaluate(()=>window.walletProbe);
+        if(probe.choosing) continue;
+        rate=(probe.simulation_tick-before.simulation_tick)/((Date.now()-timeBefore)/1000);
+        break;
+      }
+      assert.ok(probe && !probe.choosing && probe.wave>=1,'bounded live-clock sample unavailable');
       assert.ok(rate>12 && rate<26,'live clock: '+rate);
+      fs.writeFileSync(`evidence/clock-${mobile?'mobile':'desktop'}.json`,JSON.stringify({rate,choices:clockChoices},null,2));
       const name=mobile?'mobile':'desktop';
       await page.screenshot({path:`evidence/${name}.png`});
       fs.writeFileSync(`evidence/${name}.json`,JSON.stringify(probe,null,2));
