@@ -32,6 +32,36 @@ fs.mkdirSync('evidence', {recursive:true});
         assert.ok(rosterProof.enemies.some(e=>e.kind!=='grunt'));
         fs.writeFileSync('evidence/roster-proof.json',JSON.stringify(rosterProof,null,2));
         await page.screenshot({path:'evidence/roster.png'});
+        // Rules16 pauses replay for real user choices. Exercise those inputs
+        // rather than waiting for the pre-card rules13 replay to finish itself.
+        await wait(()=>window.walletCardProof,120000);
+        const card=await page.evaluate(()=>window.walletCardProof);
+        assert.equal(card.state.choosing,true);
+        await page.keyboard.press(String(card.choice+1));
+        await wait(()=>window.walletCardResult,10000);
+        const chosen=await page.evaluate(()=>window.walletCardResult);
+        assert.equal(chosen.tick,card.state.tick+1);
+        assert.equal(chosen.simulation_tick,card.state.simulation_tick);
+        assert.equal(chosen.cards[card.state.options[card.choice].id],1);
+        fs.writeFileSync('evidence/cards.json',JSON.stringify({before:card.state,after:chosen},null,2));
+        const choices=(async()=>{
+          for(const kind of ['risk','reward','skip']) {
+            await Promise.race([page.waitForFunction(k=>window.walletDecisionProof?.kind===k,kind,{timeout:120000}),failure]);
+            const before=await page.evaluate(()=>window.walletDecisionProof);
+            assert.equal(before.state.choosing,true);
+            await page.screenshot({path:`evidence/nest-${kind}.png`});
+            await page.keyboard.press(String(before.choice+1));
+            await Promise.race([page.waitForFunction(k=>window.walletDecisionResult?.kind===k,kind,{timeout:10000}),failure]);
+            const after=(await page.evaluate(()=>window.walletDecisionResult)).state;
+            assert.equal(after.tick,before.state.tick+1);
+            assert.equal(after.simulation_tick,before.state.simulation_tick);
+            assert.equal(after.risk_state,{risk:'active',reward:'complete',skip:'skipped'}[kind]);
+            if(kind==='risk') assert.equal(after.enemies.filter(e=>e.elite).length,3);
+            if(kind==='reward') assert.equal(after.cards[before.state.options[before.choice].id],(before.state.cards[before.state.options[before.choice].id]||0)+1);
+            fs.writeFileSync(`evidence/nest-${kind}.json`,JSON.stringify({before:before.state,after},null,2));
+          }
+        })();
+        choices.catch(()=>{});
         await wait(()=>window.walletChainProof,240000);
         const proof=await page.evaluate(()=>window.walletChainProof);
         assert.ok(proof.max_chain>=2 && proof.bodies.length>=2);
@@ -40,6 +70,7 @@ fs.mkdirSync('evidence', {recursive:true});
         await page.screenshot({path:'evidence/chain.png'});
         await wait(()=>window.walletReplayResult,240000);
         const replay=await page.evaluate(()=>window.walletReplayResult);
+        await choices;
         assert.deepEqual(replay,{cases:4,ok:true,ticks:expected.replay_ticks});
         fs.writeFileSync('evidence/replay.json',JSON.stringify(replay,null,2));
         const roster=await page.evaluate(()=>window.walletRosterResult);
@@ -94,7 +125,7 @@ fs.mkdirSync('evidence', {recursive:true});
       await context.close();
     }
     assert.ok(!logs.some(x=>x.includes('PAGE_ERROR') || x.includes('SCRIPT ERROR:')));
-    console.log('LIVE_GAME_PASS: public HTTPS, exact build, verified roster replay and real falling-chain proof, keyboard and simultaneous touch');
+    console.log('LIVE_GAME_PASS: public HTTPS, exact build, verified roster/card/nest replay and real falling-chain proof, keyboard and simultaneous touch');
   } catch(error) {
     if(current && !current.isClosed()) await current.screenshot({path:'evidence/failure.png'}).catch(()=>{});
     throw error;
