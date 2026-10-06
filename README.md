@@ -11,9 +11,9 @@ Play after the deployment workflow succeeds: https://kkamibbotto.github.io/tower
 - Touch supports movement and attacks simultaneously.
 - Enemies climb the cylinder wall; stones and shockwaves descend. The radar shows enemies behind the tower.
 - Rules12 adds falling-body collisions: a defeated enemy can damage enemies below and trigger a chain. The header shows the best chain.
-- Uses roster-playtest-1, seed 1 and 20 simulation ticks/second.
+- Uses risk-playtest-1, seed 1 and 20 simulation ticks/second.
 - Rules13 adds eight enemy kinds: grunt, runner, spider, jumper, armor, bomb, boss and queen. Armor blocks the first stone; bombs explode on defeat.
-- This checkpoint uses a bounded roster demonstration schedule. XP/cards, the final encounter/finale schedule and risk nest are not included yet.
+- Rules16 includes XP and upgrade cards, timed boss/queen encounters and finale, and a sealed risk nest with accept/skip and reward choices. Press 1-3 or tap a card to choose; combat pauses while choosing.
 
 This public repository contains the reviewed Web runtime archive and deployment tools.
 The original development repository, C++ source, Unreal projects and history are not copied.
@@ -36,4 +36,3 @@ Screenshots/logs are uploaded as workflow evidence. Physical-phone feel is a sep
 This repository does not have a token that reads the private development repository.
 Transferring a newer approved build is currently an explicit checkpoint, not an automatic
 cross-repository sync. No source repository visibility change is required.
-
