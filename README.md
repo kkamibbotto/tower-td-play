@@ -50,3 +50,7 @@ Verified rules17 character-playtest-1: automatic downward stone attacks without 
 ## Drag controls update
 
 Touch drag/swipe and mouse drag movement, A/D or arrow keys retained. Basic attack and left/right buttons removed; automatic fire remains. One skill button with cooldown and compact HUD. Core rules and character passive unchanged. Published from source 6225cc6dfc96264470f77811faf8121712b5fffa after Core and Godot/Web CI success. Gameplay feel/balance remains a human playtest.
+
+## Floating drag origin update
+
+Drag origin now follows the finger beyond 4% viewport width while retaining the 2% dead zone. Short reversal no longer requires returning to the initial touch point. Touch and mouse share the rule; lift/cancel stops immediately. Existing keyboard, skill and gameplay preserved. Published from source 76340b493e7c0704057c081738fbdac4653b4a42 after Core and Godot/Web CI success. Gameplay feel/balance remains a human playtest.

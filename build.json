@@ -1,7 +1,7 @@
 {
   "archive": "build/web.zip",
-  "sha256": "7b9e84328e1800f64cbdf767fcd90a99a0d430def8b9e5c0b4ead641cb6219cb",
-  "source_commit": "6225cc6dfc96264470f77811faf8121712b5fffa",
+  "sha256": "ff3f853bdf6b3e72257e7ff9d3cbdfee4f93ef6babe33a77beefdd8bd30e83b9",
+  "source_commit": "76340b493e7c0704057c081738fbdac4653b4a42",
   "godot": "4.7.2",
   "files": [
     "THIRD_PARTY_NOTICES.txt",
@@ -24,7 +24,7 @@
     "tower_core.js",
     "tower_core.wasm"
   ],
-  "ci_commit": "6317ac29fe4c0ba028fcbdb250b68f18a632a18e",
+  "ci_commit": "4c63357c90067d0a483137ec4cece33e4006788b",
   "replay_ticks": 6104,
   "content_fingerprint": "170FD20640E2A20DA860792537EACC3DDB38A790370E4A2D2D8B33D81BEA4D26",
   "content": "character-playtest-1",

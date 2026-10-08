@@ -144,6 +144,42 @@ fs.mkdirSync('evidence', {recursive:true});
         }
         throw new Error('live input deadline: '+predicate.toString());
       };
+      // Read actual gesture geometry, then verify signed core motion over stable ticks.
+      // angle is in tenths of degrees; modulo handles both directions across zero.
+      const verifyFloatingReverse=async move=>{
+        const near=(a,b)=>Math.abs(a-b)<1;
+        const geometry=await page.evaluate(()=>window.walletProbe.controls);
+        const width=geometry.viewport[0];
+        assert.ok(near(geometry.dead_zone,width*.02));
+        assert.ok(near(geometry.follow_radius,width*.04));
+        const observe=async(fraction,direction,originFraction,phase)=>{
+          await move(fraction);
+          await page.waitForFunction(({x,origin,direction})=>{
+            const c=window.walletProbe.controls;
+            return Math.abs(c.position[0]-x)<1 && Math.abs(c.origin[0]-origin)<1 && c.rotation===direction*60;
+          },{x:width*fraction,origin:width*originFraction,direction},{timeout:10000});
+          const before=await capture(phase+'-start');
+          assert.equal(before.choosing,false);
+          assert.ok(before.controls.owner!==-2);
+          assert.ok(near(before.controls.origin[1],geometry.viewport[1]*.5));
+          assert.ok(Math.abs(before.controls.position[0]-before.controls.origin[0])<=geometry.follow_radius+1);
+          await page.waitForFunction(t=>window.walletProbe.tick>=t+2,before.tick,{timeout:10000});
+          const after=await capture(phase+'-core');
+          assert.equal(after.choosing,false);
+          assert.equal(after.controls.rotation,direction*60);
+          const ticks=after.tick-before.tick;
+          assert.ok(ticks>=2 && ticks<30,'bounded uninterrupted direction sample');
+          assert.equal(after.simulation_tick-before.simulation_tick,ticks);
+          const expected=((before.angle+direction*60*ticks)%3600+3600)%3600;
+          assert.equal(after.angle,expected,'actual core angle follows signed drag across wrap');
+        };
+        await observe(.60,1,.56,'long-drag');
+        // Seven percent back crosses the nearby origin + dead zone, yet remains
+        // eight percent right of the initial .45 contact: fixed-anchor input fails.
+        await observe(.53,-1,.56,'short-reversal');
+        // Restore the original sustained direction for all subsequent skill history.
+        await observe(.60,1,.56,'restored-drag');
+      };
       let cdp,points;
       if(mobile) {
         cdp=await context.newCDPSession(page);
@@ -158,11 +194,16 @@ fs.mkdirSync('evidence', {recursive:true});
         await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});
         points[0]=point(.60,.5,1);
         await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:points});
+        await verifyFloatingReverse(async fraction=>{
+          points[0]=point(fraction,.5,1);
+          await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:points});
+        });
       } else {
         const canvas=await page.locator('canvas').boundingBox();
         await page.mouse.move(canvas.x+canvas.width*.45,canvas.y+canvas.height*.5);
         await page.mouse.down();
         await page.mouse.move(canvas.x+canvas.width*.6,canvas.y+canvas.height*.5,{steps:4});
+        await verifyFloatingReverse(fraction=>page.mouse.move(canvas.x+canvas.width*fraction,canvas.y+canvas.height*.5));
         await liveWait(p=>p.inputs.rotation>0,10000);
         await page.mouse.up();
         const stopped=await capture('mouse-lift');
