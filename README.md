@@ -42,3 +42,7 @@ cross-repository sync. No source repository visibility change is required.
 기본 언어는 한국어입니다. 화면의 언어 버튼 또는 `L` 키로 한국어/영어를 전환합니다.
 The default language is Korean. Use the language button or `L` to switch Korean/English.
 The verified build includes annotated localization data and the Noto Sans KR font with its SIL OFL license and provenance.
+
+## Current character build
+
+Verified rules17 character-playtest-1: automatic downward stone attacks without targeting, manual shock, and innate Falling Aftermath (direct stone-kill corpse falling damage +50%, trial balance). Run cards remain separate. Published from source f8f0b74356d7a0a5ccf79e948af2984d15792eee after Core and Godot/Web CI success. Gameplay feel/balance remains a human playtest.

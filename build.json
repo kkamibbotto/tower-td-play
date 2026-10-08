@@ -1,7 +1,7 @@
 {
   "archive": "build/web.zip",
-  "sha256": "38a695f9dfcbeaf584a3d4432f7d3ef227af9279008cd555e7c8b210bb2800eb",
-  "source_commit": "d5a2d6b39633c39b5d4effc5beb994c2661942db",
+  "sha256": "b539123619b769c3de424fabda06cccccd6c8a9357a3e8ee0eb8ff48de28658f",
+  "source_commit": "f8f0b74356d7a0a5ccf79e948af2984d15792eee",
   "godot": "4.7.2",
   "files": [
     "THIRD_PARTY_NOTICES.txt",
@@ -24,14 +24,15 @@
     "tower_core.js",
     "tower_core.wasm"
   ],
-  "ci_commit": "3ba96669a2b7387530b4332fea84b3c5921c9a42",
+  "ci_commit": "0c22c30652b481f7b8dcbb2153bd620050909cbe",
   "replay_ticks": 6104,
-  "content_fingerprint": "DE63A7EF1346107E0251FAFAF42C335F11B0BFBC942617C60991400A5D6FF7B7",
-  "content": "risk-playtest-1",
-  "rules": "tower-rules-16",
+  "content_fingerprint": "170FD20640E2A20DA860792537EACC3DDB38A790370E4A2D2D8B33D81BEA4D26",
+  "content": "character-playtest-1",
+  "rules": "tower-rules-17",
   "default_locale": "ko",
   "locales": [
     "ko",
     "en"
-  ]
+  ],
+  "character_replay_ticks": 6073
 }

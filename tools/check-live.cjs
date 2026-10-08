@@ -1,5 +1,6 @@
 const {chromium} = require('playwright');
 const fs = require('node:fs');
+const path = require('node:path');
 const assert = require('node:assert/strict');
 const expected = require('../build.json');
 const url = new URL(process.env.PLAY_URL);
@@ -78,7 +79,8 @@ fs.mkdirSync('evidence', {recursive:true});
         for(const kind of ['armor-break','explosion','enemy-jump','enemy-crouch','enemy-turn','fall-hit']) assert.ok(roster.events[kind]>0,kind);
         fs.writeFileSync('evidence/roster-result.json',JSON.stringify(roster,null,2));
       }
-      await wait(()=>window.walletProbe?.ready,120000);
+      if(!mobile) { await wait(()=>window.walletCharacterReplayResult,240000); assert.deepEqual(await page.evaluate(()=>window.walletCharacterReplayResult),{ok:true,cases:4,ticks:expected.character_replay_ticks}); }
+      await wait(()=>window.walletProbe?.ready && window.walletProbe.config.content===expected.content && window.walletProbe.tick===0,120000);
       const initial=await page.evaluate(()=>window.walletProbe);
       assert.equal(initial.config.seed,1);
       assert.equal(initial.config.step_seconds,.05);
@@ -92,61 +94,106 @@ fs.mkdirSync('evidence', {recursive:true});
       if(mobile) await page.touchscreen.tap(195,420);
       else await page.keyboard.press('Enter');
       await wait(()=>window.walletProbe.started && window.walletProbe.tick>=1);
-      if (mobile) {
-        const cdp=await context.newCDPSession(page);
-        const c=await page.locator('canvas').boundingBox(); assert.ok(c);
-        const point=(x,y,id)=>({x:c.x+c.width*x,y:c.y+c.height*y,id});
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(.37,.895,1),point(.62,.895,2),point(.87,.895,3)]});
-        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.events["wall-shot"]>0 && window.walletProbe.events["wall-wave"]===1);
-        await wait(()=>window.walletProbe.tick>=95);
-        assert.equal(await page.evaluate(()=>window.walletProbe.events['wall-wave']),1);
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point(.87,.895,3)]});
-        await wait(()=>window.walletProbe.events['wall-wave']===2);
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-      } else {
-        await page.keyboard.down('d');await page.keyboard.down('Space');await page.keyboard.down('e');
-        await wait(()=>window.walletProbe.inputs.rotation>0 && window.walletProbe.events["wall-shot"]>0 && window.walletProbe.events["wall-wave"]===1);
-        await wait(()=>window.walletProbe.tick>=95);
-        assert.equal(await page.evaluate(()=>window.walletProbe.events['wall-wave']),1);
-        await page.keyboard.up('d');await page.keyboard.up('Space');await page.keyboard.up('e');
-        await page.keyboard.press('e');
-        await wait(()=>window.walletProbe.events['wall-wave']===2);
-      }
-      // A genuine card choice pauses simulation. Handle it with real input and
-      // restart the clock sample; never count choice/wall time as game time.
-      let probe, rate;
-      const clockChoices=[];
-      for(let attempt=0;attempt<4;attempt++) {
-        let before=await page.evaluate(()=>window.walletProbe);
-        if(before.choosing) {
-          assert.equal(before.decision,'card','unexpected live-clock decision');
-          assert.ok(before.options.length>0);
-          const id=before.options[0].id;
-          if(mobile) {
-            const canvas=await page.locator('canvas').boundingBox();assert.ok(canvas);
-            await page.touchscreen.tap(canvas.x+canvas.width*.5,canvas.y+canvas.height*.35);
-          } else await page.keyboard.press('1');
-          await wait(()=>!window.walletProbe.choosing);
-          const after=await page.evaluate(()=>window.walletProbe);
-          assert.equal(after.cards[id],(before.cards[id]||0)+1);
-          clockChoices.push({id,before:before.simulation_tick,after:after.simulation_tick});
-          before=after;
+      await wait(()=>window.walletProbe.events['wall-shot']>=2,10000);
+      assert.equal(await page.evaluate(()=>window.walletProbe.inputs.stone),0);
+      assert.equal(await page.evaluate(()=>window.walletProbe.events['wall-wave']||0),0);
+      const device=mobile?'mobile':'desktop';
+      const trace=[];
+      const capture=async phase=>{
+        const probe=await page.evaluate(()=>window.walletProbe);
+        trace.push({phase,probe});
+        fs.writeFileSync(path.join("evidence",`${device}-shock-trace.json`),JSON.stringify(trace,null,2));
+        return probe;
+      };
+      // A real decision freezes combat and cancels held controls. Select through
+      // the same keyboard/touch UI and verify the exact core choice frame.
+      const decide=async()=>{
+        const before=await capture('choice');
+        assert.equal(before.choosing,true);
+        assert.ok(before.options.length>0);
+        assert.ok(['card','reward','risk'].includes(before.decision),'unknown live decision');
+        await page.waitForTimeout(100);
+        const frozen=await page.evaluate(()=>window.walletProbe);
+        assert.equal(frozen.tick,before.tick,'live decision must freeze recording');
+        assert.equal(frozen.simulation_tick,before.simulation_tick);
+        const index=before.decision==='risk'?before.options.findIndex(o=>o.id==='risk-skip'):0;
+        assert.ok(index>=0);
+        if(mobile) {
+          const box=await page.locator('canvas').boundingBox();
+          assert.ok(box);
+          await page.touchscreen.tap(box.x+box.width*.5,box.y+box.height*(.30+index*.17+.075));
+        } else await page.keyboard.press(String(index+1));
+        await page.waitForFunction(t=>window.walletProbe.last_choice?.before.tick===t,before.tick,{timeout:10000});
+        const result=(await capture('choice-result')).last_choice;
+        assert.equal(result.index,index);
+        assert.equal(result.after.tick,before.tick+1);
+        assert.equal(result.after.simulation_tick,before.simulation_tick,'choice must not advance simulation');
+        assert.equal(result.after.choosing,false);
+        if(before.decision==='risk') assert.equal(result.after.risk_state,'skipped');
+        else assert.equal(result.after.cards[before.options[index].id],(before.cards[before.options[index].id]||0)+1);
+      };
+      const liveWait=async(predicate,timeout)=>{
+        const deadline=Date.now()+timeout;
+        while(Date.now()<deadline) {
+          const p=await page.evaluate(()=>window.walletProbe);
+          assert.equal(p.finished,false,'live input run ended before acceptance');
+          assert.equal(p.paused,false,'live input run unexpectedly paused');
+          if(p.choosing) await decide();
+          else if(predicate(p)) return await capture('live-wait');
+          else await Promise.race([page.waitForTimeout(50),failure]);
         }
-        const timeBefore=Date.now();
-        const target=Math.max(150,before.simulation_tick+40);
-        await Promise.race([page.waitForFunction(t=>window.walletProbe.choosing || window.walletProbe.simulation_tick>=t,target,{timeout:30000}),failure]);
-        probe=await page.evaluate(()=>window.walletProbe);
-        if(probe.choosing) continue;
-        rate=(probe.simulation_tick-before.simulation_tick)/((Date.now()-timeBefore)/1000);
-        break;
+        throw new Error('live input deadline: '+predicate.toString());
+      };
+      let cdp,points;
+      if(mobile) {
+        cdp=await context.newCDPSession(page);
+        const canvas=await page.locator('canvas').boundingBox();
+        assert.ok(canvas);
+        const point=(x,y,id)=>({x:canvas.x+canvas.width*x,y:canvas.y+canvas.height*y,id});
+        points=[point(.37,.895,1),point(.87,.895,3)];
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});
+      } else {
+        await page.keyboard.down('d'); await page.keyboard.down('e');
       }
-      assert.ok(probe && !probe.choosing && probe.wave>=1,'bounded live-clock sample unavailable');
-      assert.ok(rate>12 && rate<26,'live clock: '+rate);
-      fs.writeFileSync(`evidence/clock-${mobile?'mobile':'desktop'}.json`,JSON.stringify({rate,choices:clockChoices},null,2));
-      const name=mobile?'mobile':'desktop';
-      await page.screenshot({path:`evidence/${name}.png`});
-      fs.writeFileSync(`evidence/${name}.json`,JSON.stringify(probe,null,2));
+      await liveWait(p=>p.inputs.rotation>0 && p.events['wall-shot']>0 && p.events['wall-wave']===1,10000);
+      // tick 95 alone is not a cooldown guarantee: first input delivery varies
+      // with Web frames, and recording ticks include frozen choice frames.
+      await liveWait(p=>p.tick>=95 && p.abilities.some(a=>a.id==='shock' && !a.casting && p.simulation_tick>=a.ready_at),15000);
+      // Observe held input across additional ready ticks, not just during cooldown.
+      await capture('held-ready');
+      await liveWait(p=>p.abilities.some(a=>a.id==='shock' && !a.casting && p.simulation_tick>=a.ready_at+4) && p.tick>=99,10000);
+      assert.equal((await capture('held-no-repeat')).events['wall-wave'],1,mobile?'held touch must not repeat shock':'held E must not repeat shock');
+      if(mobile) await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      else {await page.keyboard.up('d');await page.keyboard.up('e');}
+      const beforeSecond=await capture('before-second-press');
+      assert.equal(beforeSecond.choosing,false);
+      assert.equal(beforeSecond.inputs.shock,1,'held skill must deliver exactly one edge');
+      if(mobile) await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[points[1]]});
+      else await page.keyboard.press('e');
+      await liveWait(p=>p.events['wall-wave']===2,10000);
+      const second=await capture('second-wave');
+      assert.equal(second.inputs.shock,beforeSecond.inputs.shock+1,'one fresh input must reach the core');
+      if(mobile) await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+      assert.ok(await page.evaluate(()=>window.walletProbe.wave>=1),'wave display did not retain its core event');
+      // Measure an uninterrupted combat interval; decision UI time is not clock drift.
+      const rateDeadline=Date.now()+15000;
+      let clockStart=await page.evaluate(()=>window.walletProbe),startTime=Date.now(),rate;
+      while(Date.now()<rateDeadline) {
+        await page.waitForTimeout(50);
+        const p=await page.evaluate(()=>window.walletProbe);
+        assert.equal(p.finished,false);
+        assert.equal(p.paused,false);
+        if(p.choosing) {
+          await decide();
+          clockStart=await page.evaluate(()=>window.walletProbe);startTime=Date.now();
+        } else if(p.tick>=150 && p.simulation_tick-clockStart.simulation_tick>=40) {
+          rate=(p.simulation_tick-clockStart.simulation_tick)/((Date.now()-startTime)/1000);
+          break;
+        }
+      }
+      assert.ok(rate>12 && rate<26,'live clock differs substantially from 20Hz: '+rate);
+      await page.screenshot({path:path.join("evidence",mobile?'mobile.png':'desktop.png')});
+      fs.writeFileSync(path.join("evidence",mobile?'mobile-input.json':'desktop-input.json'),JSON.stringify(await page.evaluate(()=>window.walletProbe),null,2));
       await context.close();
     }
     assert.ok(!logs.some(x=>x.includes('PAGE_ERROR') || x.includes('SCRIPT ERROR:')));
