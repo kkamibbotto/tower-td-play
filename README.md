@@ -46,3 +46,7 @@ The verified build includes annotated localization data and the Noto Sans KR fon
 ## Current character build
 
 Verified rules17 character-playtest-1: automatic downward stone attacks without targeting, manual shock, and innate Falling Aftermath (direct stone-kill corpse falling damage +50%, trial balance). Run cards remain separate. Published from source f8f0b74356d7a0a5ccf79e948af2984d15792eee after Core and Godot/Web CI success. Gameplay feel/balance remains a human playtest.
+
+## Drag controls update
+
+Touch drag/swipe and mouse drag movement, A/D or arrow keys retained. Basic attack and left/right buttons removed; automatic fire remains. One skill button with cooldown and compact HUD. Core rules and character passive unchanged. Published from source 6225cc6dfc96264470f77811faf8121712b5fffa after Core and Godot/Web CI success. Gameplay feel/balance remains a human playtest.

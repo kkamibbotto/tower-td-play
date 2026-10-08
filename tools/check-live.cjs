@@ -150,9 +150,24 @@ fs.mkdirSync('evidence', {recursive:true});
         const canvas=await page.locator('canvas').boundingBox();
         assert.ok(canvas);
         const point=(x,y,id)=>({x:canvas.x+canvas.width*x,y:canvas.y+canvas.height*y,id});
-        points=[point(.37,.895,1),point(.87,.895,3)];
+        const geometry=await page.evaluate(()=>window.walletProbe.controls);
+        assert.equal(geometry.drag,true); assert.equal(geometry.basic_button,false);
+        const [sx,sy,sw,sh]=geometry.skill, [vw,vh]=geometry.viewport;
+        assert.ok(sx>=0 && sy>=0 && sx+sw<=vw && sy+sh<=vh);
+        points=[point(.45,.5,1),point((sx+sw/2)/vw,(sy+sh/2)/vh,3)];
         await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:points});
+        points[0]=point(.60,.5,1);
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:points});
       } else {
+        const canvas=await page.locator('canvas').boundingBox();
+        await page.mouse.move(canvas.x+canvas.width*.45,canvas.y+canvas.height*.5);
+        await page.mouse.down();
+        await page.mouse.move(canvas.x+canvas.width*.6,canvas.y+canvas.height*.5,{steps:4});
+        await liveWait(p=>p.inputs.rotation>0,10000);
+        await page.mouse.up();
+        const stopped=await capture('mouse-lift');
+        await page.waitForTimeout(150);
+        assert.equal((await capture('mouse-no-drift')).inputs.rotation,stopped.inputs.rotation);
         await page.keyboard.down('d'); await page.keyboard.down('e');
       }
       await liveWait(p=>p.inputs.rotation>0 && p.events['wall-shot']>0 && p.events['wall-wave']===1,10000);
