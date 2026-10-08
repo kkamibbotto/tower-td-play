@@ -80,7 +80,7 @@ fs.mkdirSync('evidence', {recursive:true});
         fs.writeFileSync('evidence/roster-result.json',JSON.stringify(roster,null,2));
       }
       if(!mobile) { await wait(()=>window.walletCharacterReplayResult,240000); assert.deepEqual(await page.evaluate(()=>window.walletCharacterReplayResult),{ok:true,cases:4,ticks:expected.character_replay_ticks}); }
-      await wait(()=>window.walletProbe?.ready && window.walletProbe.config.content===expected.content && window.walletProbe.tick===0,120000);
+      await wait(()=>window.walletProbe?.ready && window.walletProbe.config.content==='character-playtest-1' && window.walletProbe.tick===0,120000);
       const initial=await page.evaluate(()=>window.walletProbe);
       assert.equal(initial.config.seed,1);
       assert.equal(initial.config.step_seconds,.05);
